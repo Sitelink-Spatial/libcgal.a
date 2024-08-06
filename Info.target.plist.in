@@ -3,6 +3,8 @@
 			<string>include</string>
 			<key>LibraryIdentifier</key>
 			<string>%%TARGET%%</string>
+			<key>LibraryPath</key>
+			<string>%%LIBPATH%%</string>
 			<key>SupportedArchitectures</key>
 			<array>
 				<string>%%ARCH%%</string>

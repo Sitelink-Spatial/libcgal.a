@@ -265,7 +265,6 @@ TOOLCHAIN="${TOOLCHAIN} \
             -DCMAKE_CXX_STANDARD=17 \
             "
 
-
 #--------------------------------------------------------------------
 showParams()
 {
@@ -386,12 +385,36 @@ if    [ ! -z "${REBUILDLIBS}" ] \
     # Copy include files
     cp -R "${LIBINSTFULL}/." "${PKGROOT}/${TARGET}/"
 
-    # Copy library
-    if [ -f "${LIBINSTFULL}/lib/${LIBNAME}.a" ]; then
-        mv "${LIBINSTFULL}/lib/${LIBNAME}.a" "${PKGROOT}/${TARGET}/${LIBNAME}.a"
-        exitOnError "Failed to build library ${LIBNAME}"
+    LIBBINSRC="${LIBINSTFULL}/lib/${LIBNAME}.a"
+    LIBBINTGT="${PKGROOT}/${TARGET}/${LIBNAME}.a"
 
-        lipo -info "${PKGROOT}/${TARGET}/${LIBNAME}.a"
+    # Create empty library if needed
+    if [ ! -f "${LIBBINSRC}" ]; then
+        PROG="extern \"C\" const char *g_lib = \"${LIBNAME}\"; extern \"C\" const char *g_libver = \"${LIBVER}\";"
+        if [[ $BUILDTARGET == *"simulator"* ]]; then
+            ar rcs "${LIBBINSRC}" \
+                <(echo $PROG | clang -arch x86_64 -isysroot $(xcrun --sdk iphonesimulator --show-sdk-path) -x c++ -c -) \
+                <(echo $PROG | clang -arch arm64 -isysroot $(xcrun --sdk iphonesimulator --show-sdk-path) -x c++ -c -)
+        elif [[ $BUILDTARGET == *"ios"* ]]; then
+            ar rcs "${LIBBINSRC}" \
+                <(echo $PROG | clang -arch arm64 -isysroot $(xcrun --sdk iphoneos --show-sdk-path) -x c++ -c -)
+
+        elif [[ $BUILDTARGET == *"macos"* ]]; then
+            ar rcs "${LIBBINSRC}" \
+                <(echo $PROG | clang -arch x86_64 -isysroot $(xcrun --sdk macosx --show-sdk-path) -x c++ -c -) \
+                <(echo $PROG | clang -arch arm64 -isysroot $(xcrun --sdk macosx --show-sdk-path) -x c++ -c -)
+        else
+            exitWithError "Invalid target : $BUILDTARGET"
+        fi
+    fi
+
+    # Copy library
+    if [ -f "${LIBBINSRC}" ]; then
+        mv "${LIBBINSRC}" "${LIBBINTGT}"
+        exitOnError "Failed to build library ${LIBNAME}"
+        lipo -info "${LIBBINTGT}"
+    else
+        exitWithError "Failed to build library ${LIBNAME}"
     fi
 
     INCPATH="include"

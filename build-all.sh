@@ -6,9 +6,25 @@ if [[ "release" != "$CONFIG" ]] && [[ "debug" != "$CONFIG" ]]; then
     exit -1
 fi
 
-./build.sh build $CONFIG arm64-apple-ios12.0
+exitWithError()
+{
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    echo "$@"
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    exit -1
+}
 
-./build.sh build $CONFIG arm64-apple-macos12.0
+exitOnError()
+{
+    if [[ 0 -eq $? ]]; then return 0; fi
+    exitWithError $@
+}
 
-./build.sh build $CONFIG x86_64-apple-ios12.0-simulator
-
+BUILDTARGETS=("arm64-apple-ios12.0" \
+              "arm64-apple-macos12.0" \
+              "x86_64-apple-ios12.0-simulator" \
+             )
+for target in "${BUILDTARGETS[@]}"; do
+    ./build.sh build $CONFIG $target
+    exitOnError "Failed to build $target"
+done
