@@ -20,8 +20,8 @@ iOS build for [libcgal](https://www.cgal.org)
 
     .binaryTarget(
         name: "libcgal.a",
-        url: "https://github.com/Sitelink-Spatial/libcgal.a/releases/download/r1/libcgal.a.xcframework.zip",
-        checksum: "82a1219fd84ff08ffa884da52e6026d58a5dfaa883a21f3abcb3bf0e58b5629b"
+        url: "https://github.com/Sitelink-Spatial/libcgal.a/releases/download/r2/libcgal.a.xcframework.zip",
+        checksum: "04673aea5ef9d0f8f802d82824d61361dbf43502d1437c5dac4943059be04c6d"
     )
 
 ```
