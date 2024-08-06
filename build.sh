@@ -390,19 +390,21 @@ if    [ ! -z "${REBUILDLIBS}" ] \
 
     # Create empty library if needed
     if [ ! -f "${LIBBINSRC}" ]; then
-        PROG="extern \"C\" const char *g_lib = \"${LIBNAME}\"; extern \"C\" const char *g_libver = \"${LIBVER}\";"
+        PROG="extern \"C\" const char *g_lib_${LIBNAME} = \"${LIBNAME}\"; extern \"C\" const char *g_libver_${LIBNAME} = \"${LIBVER}\";"
         if [[ $BUILDTARGET == *"simulator"* ]]; then
-            ar rcs "${LIBBINSRC}" \
-                <(echo $PROG | clang -arch x86_64 -isysroot $(xcrun --sdk iphonesimulator --show-sdk-path) -x c++ -c -) \
-                <(echo $PROG | clang -arch arm64 -isysroot $(xcrun --sdk iphonesimulator --show-sdk-path) -x c++ -c -)
+            echo "${PROG}" | clang -x c++ -arch x86_64 -isysroot $(xcrun --sdk iphonesimulator --show-sdk-path) -c -o g_lib_sim_x86_64.o - \
+              && echo "${PROG}" | clang -x c++ -arch arm64 -isysroot $(xcrun --sdk iphonesimulator --show-sdk-path) -c -o g_lib_sim_arm64.o - \
+              && ar rcs "${LIBBINSRC}" g_lib_sim_x86_64.o g_lib_sim_arm64.o \
+              && rm g_lib_sim_x86_64.o g_lib_sim_arm64.o
         elif [[ $BUILDTARGET == *"ios"* ]]; then
-            ar rcs "${LIBBINSRC}" \
-                <(echo $PROG | clang -arch arm64 -isysroot $(xcrun --sdk iphoneos --show-sdk-path) -x c++ -c -)
-
+            echo "${PROG}" | clang -x c++ -arch arm64 -isysroot $(xcrun --sdk iphoneos --show-sdk-path) -c -o g_libid_arm64.o - \
+                && ar rcs "${LIBBINSRC}" g_lib.o \
+                && rm g_lib.o
         elif [[ $BUILDTARGET == *"macos"* ]]; then
-            ar rcs "${LIBBINSRC}" \
-                <(echo $PROG | clang -arch x86_64 -isysroot $(xcrun --sdk macosx --show-sdk-path) -x c++ -c -) \
-                <(echo $PROG | clang -arch arm64 -isysroot $(xcrun --sdk macosx --show-sdk-path) -x c++ -c -)
+            echo "${PROG}" | clang -x c++ -arch x86_64 -isysroot $(xcrun --sdk macosx --show-sdk-path) -c -o g_libid_mac_x86_64.o - \
+                && echo "${PROG}" | clang -x c++ -arch arm64 -isysroot $(xcrun --sdk macosx --show-sdk-path) -c -o g_libid_mac_arm64.o - \
+                && ar rcs libmylib_macos.a g_libid_mac_x86_64.o g_libid_mac_arm64.o \
+                && rm g_libid_mac_x86_64.o g_libid_mac_arm64.o
         else
             exitWithError "Invalid target : $BUILDTARGET"
         fi
