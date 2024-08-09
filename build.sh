@@ -201,6 +201,7 @@ fi
 
 TARGET="${TGT_OS}-${TGT_ARCH}${TGT_OPTS}"
 
+BINROOT="${BUILDOUT}/${BUILDTARGET}/bin"
 LIBROOT="${BUILDOUT}/${BUILDTARGET}/lib3"
 LIBINST="${BUILDOUT}/${BUILDTARGET}/install"
 
@@ -390,21 +391,22 @@ if    [ ! -z "${REBUILDLIBS}" ] \
 
     # Create empty library if needed
     if [ ! -f "${LIBBINSRC}" ]; then
+        mkdir -p "${BINROOT}"
+        mkdir -p "${LIBINSTFULL}/lib"
+        echo "----------> Creating empty library: ${LIBNAME} : ${BUILDTARGET}"
+        echo " ---> ${LIBBINSRC}"
         PROG="extern \"C\" const char *g_lib_${LIBNAME} = \"${LIBNAME}\"; extern \"C\" const char *g_libver_${LIBNAME} = \"${LIBVER}\";"
         if [[ $BUILDTARGET == *"simulator"* ]]; then
-            echo "${PROG}" | clang -x c++ -arch x86_64 -isysroot $(xcrun --sdk iphonesimulator --show-sdk-path) -c -o g_lib_sim_x86_64.o - \
-              && echo "${PROG}" | clang -x c++ -arch arm64 -isysroot $(xcrun --sdk iphonesimulator --show-sdk-path) -c -o g_lib_sim_arm64.o - \
-              && ar rcs "${LIBBINSRC}" g_lib_sim_x86_64.o g_lib_sim_arm64.o \
-              && rm g_lib_sim_x86_64.o g_lib_sim_arm64.o
+            echo "${PROG}" | clang -x c++ -arch x86_64 -isysroot $(xcrun --sdk iphonesimulator --show-sdk-path) -c -o "${BINROOT}/g_lib_sim_x86_64.o" - \
+              && echo "${PROG}" | clang -x c++ -arch arm64 -isysroot $(xcrun --sdk iphonesimulator --show-sdk-path) -c -o "${BINROOT}/g_lib_sim_arm64.o" - \
+              && ar rcs "${LIBBINSRC}" "${BINROOT}/g_lib_sim_x86_64.o" "${BINROOT}/g_lib_sim_arm64.o"
         elif [[ $BUILDTARGET == *"ios"* ]]; then
-            echo "${PROG}" | clang -x c++ -arch arm64 -isysroot $(xcrun --sdk iphoneos --show-sdk-path) -c -o g_libid_arm64.o - \
-                && ar rcs "${LIBBINSRC}" g_lib.o \
-                && rm g_lib.o
+            echo "${PROG}" | clang -x c++ -arch arm64 -isysroot $(xcrun --sdk iphoneos --show-sdk-path) -c -o "${BINROOT}/g_lib_arm64.o" - \
+                && ar rcs "${LIBBINSRC}" "${BINROOT}/g_lib_arm64.o"
         elif [[ $BUILDTARGET == *"macos"* ]]; then
-            echo "${PROG}" | clang -x c++ -arch x86_64 -isysroot $(xcrun --sdk macosx --show-sdk-path) -c -o g_libid_mac_x86_64.o - \
-                && echo "${PROG}" | clang -x c++ -arch arm64 -isysroot $(xcrun --sdk macosx --show-sdk-path) -c -o g_libid_mac_arm64.o - \
-                && ar rcs libmylib_macos.a g_libid_mac_x86_64.o g_libid_mac_arm64.o \
-                && rm g_libid_mac_x86_64.o g_libid_mac_arm64.o
+            echo "${PROG}" | clang -x c++ -arch x86_64 -isysroot $(xcrun --sdk macosx --show-sdk-path) -c -o "${BINROOT}/g_lib_mac_x86_64.o" - \
+                && echo "${PROG}" | clang -x c++ -arch arm64 -isysroot $(xcrun --sdk macosx --show-sdk-path) -c -o "${BINROOT}/g_lib_mac_arm64.o" - \
+                && ar rcs "${LIBBINSRC}" "${BINROOT}/g_lib_mac_x86_64.o" "${BINROOT}/g_lib_mac_arm64.o"
         else
             exitWithError "Invalid target : $BUILDTARGET"
         fi
@@ -469,7 +471,7 @@ if [ -d "${PKGROOT}" ]; then
         fi
 
         # Create new package
-        zip -r "${PKGFILE}" "$PKGNAME" -x "*.DS_Store"
+        zip -r "${PKGFILE}" "$PKGNAME" -x "*.DS_Store" -q
 
         # Calculate sha256
         openssl dgst -sha256 -r < "${PKGFILE}" | cut -f1 -d' ' > "${PKGFILE}.sha256.txt"
